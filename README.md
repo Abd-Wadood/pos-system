@@ -13,5 +13,5 @@ A simple Point of Sale system for small retailers with category and brand manage
 Abdul Wadood
 
 ## Collaborators
-- [Collaborator 1]
-- [Collaborator 2]
+- [ikhrash 1]
+- [suleman 2]
