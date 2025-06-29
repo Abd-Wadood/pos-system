@@ -21,5 +21,13 @@ class Category {
         $stmt->bind_param("i", $id);
         return $stmt->execute();
     }
+
+    public function getById($id) {
+    $stmt = $this->conn->prepare("SELECT * FROM categories WHERE id = ?");
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    return $stmt->get_result();
+}
+
 }
 ?>

@@ -6,15 +6,22 @@ class Brand {
         $this->conn = $db;
     }
 
-    public function getAll() {
-        return $this->conn->query("SELECT * FROM brands");
-    }
+   public function getAll() {
+    $query = "SELECT brands.*, categories.name AS category_name
+              FROM brands
+              JOIN categories ON brands.category_id = categories.id";
+    return $this->conn->query($query);
+}
 
-    public function add($name, $price, $expiration_date, $quantity) {
-        $stmt = $this->conn->prepare("INSERT INTO brands (name, price, expiration_date, quantity) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("sdsi", $name, $price, $expiration_date, $quantity);
-        return $stmt->execute();
-    }
+
+ public function add($name, $price, $expiration_date, $quantity, $category_id) {
+    $stmt = $this->conn->prepare(
+        "INSERT INTO brands (name, price, expiration_date, quantity, category_id) VALUES (?, ?, ?, ?, ?)"
+    );
+    $stmt->bind_param("sdsii", $name, $price, $expiration_date, $quantity, $category_id);
+    return $stmt->execute();
+}
+
 
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM brands WHERE id = ?");

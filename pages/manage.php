@@ -22,16 +22,16 @@ if (isset($_GET['delete_category'])) {
     exit();
 }
 
-// Handle Brand Add/Delete
 // Handle Brand Add
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_brand'])) {
     $name = $_POST['brand_name'];
     $price = $_POST['brand_price'];
     $quantity = $_POST['brand_quantity'];
     $expiration = $_POST['brand_expiration'];
-    
+    $category_id = $_POST['brand_category'];
 
-    $brand->add($name, $price, $expiration, $quantity);
+   $brand->add($name, $price, $expiration, $quantity, $category_id);
+
     header("Location: manage.php");
     exit();
 }
@@ -42,7 +42,6 @@ if (isset($_GET['delete_brand'])) {
     header("Location: manage.php");
     exit();
 }
-
 ?>
 <!DOCTYPE html>
 <html>
@@ -71,55 +70,54 @@ if (isset($_GET['delete_brand'])) {
         ?>
     </table>
 
-<h2>Stock Management</h2>
+    <h2>Stock Management</h2>
 
-<!-- Brand Add Form -->
-<form method="post">
-    <input type="text" name="brand_name" placeholder="Name" required>
-    <input type="number" step="0.01" name="brand_price" placeholder="Price" required>
-    <input type="number" name="brand_quantity" placeholder="Quantity" required>
-    <input type="date" name="brand_expiration" required>
-    <button type="submit" name="add_brand">Add Brand</button>
-</form>
+    <!-- Brand Add Form -->
+    <form method="post">
+        <input type="text" name="brand_name" placeholder="Name" required>
+        <input type="number" step="0.01" name="brand_price" placeholder="Price" required>
+        <input type="number" name="brand_quantity" placeholder="Quantity" required>
+        <input type="date" name="brand_expiration" required>
 
-<?php
-// Handle form submission
-if (isset($_POST['add_brand'])) {
-    $name = $_POST['brand_name'];
-    $price = $_POST['brand_price'];
-    $quantity = $_POST['brand_quantity'];
-    $expiration = $_POST['brand_expiration'];
-    $brand->add($name, $price, $quantity, $expiration);
-    echo "<meta http-equiv='refresh' content='0'>"; // Refresh to show updated list
-}
-?>
+        <!-- Category Dropdown -->
+        <select name="brand_category" required>
+            <option value="">Select Category</option>
+            <?php
+            $categories = $category->getAll();
+            while ($row = $categories->fetch_assoc()) {
+                echo "<option value='{$row['id']}'>{$row['name']}</option>";
+            }
+            ?>
+        </select>
 
-<!-- Brands Table -->
-<table>
-    <tr>
-        <th>ID</th>
-        <th>Name</th>
-        <th>Price</th>
-        <th>Quantity</th>
-        <th>Expiration Date</th>
-        <th>Action</th>
-    </tr>
-    <?php
-    $result = $brand->getAll();
-    while ($row = $result->fetch_assoc()) {
-        echo "<tr>
-            <td>{$row['id']}</td>
-            <td>{$row['name']}</td>
-            <td>{$row['price']}</td>
-            <td>{$row['quantity']}</td>
-            <td>{$row['expiration_date']}</td>
-            
-            <td><a href='manage.php?delete_brand={$row['id']}'>Delete</a></td>
-        </tr>";
-    }
-    ?>
-</table>
+        <button type="submit" name="add_brand">Add Brand</button>
+    </form>
 
-
+    <!-- Brands Table -->
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Expiration Date</th>
+            <th>Category</th>
+            <th>Action</th>
+        </tr>
+        <?php
+        $result = $brand->getAll(); // This should return category name too
+        while ($row = $result->fetch_assoc()) {
+            echo "<tr>
+                <td>{$row['id']}</td>
+                <td>{$row['name']}</td>
+                <td>{$row['price']}</td>
+                <td>{$row['quantity']}</td>
+                <td>{$row['expiration_date']}</td>
+                <td>{$row['category_name']}</td>
+                <td><a href='manage.php?delete_brand={$row['id']}'>Delete</a></td>
+            </tr>";
+        }
+        ?>
+    </table>
 </body>
 </html>
