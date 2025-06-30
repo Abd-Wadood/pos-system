@@ -220,6 +220,32 @@ ALTER TABLE `suppliers`
   ADD CONSTRAINT `suppliers_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE;
 COMMIT;
 
+--
+--Creating table Customers
+--
+CREATE TABLE customers (
+    customer_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100),
+    phone VARCHAR(20),
+    address TEXT,
+    
+);
+--
+--Creating table payments
+--
+CREATE TABLE payments (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    sale_id INT,
+    payment_type VARCHAR(50),
+    amount_paid DECIMAL(10,2),
+    payment_date DATE,
+    FOREIGN KEY (sale_id) REFERENCES sales(sale_id)
+);
+
+
+
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
