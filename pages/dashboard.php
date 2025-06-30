@@ -15,9 +15,12 @@ if (!isset($_SESSION['username'])) {
     <h2>Welcome, <?php echo $_SESSION['username']; ?></h2>
     <ul>
         
-        <li><a href="manage.php">Manage Categories</a></li>
-
-
+<a href="manage.php" style="display:inline-block; margin:10px; padding:12px 20px; background-color:#007bff; color:white; text-decoration:none; border-radius:5px;">
+    📦 Manage Categories & Stocks
+</a>
+<a href="menu.php" style="display:inline-block; margin:10px; padding:12px 20px; background-color:#28a745; color:white; text-decoration:none; border-radius:5px;">
+    🍴 Manage Menu
+</a>
 
 
 

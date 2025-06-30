@@ -11,10 +11,22 @@ class Category {
     }
 
     public function add($name) {
-        $stmt = $this->conn->prepare("INSERT INTO categories (name) VALUES (?)");
-        $stmt->bind_param("s", $name);
-        return $stmt->execute();
+    // Check if category already exists
+    $stmt = $this->conn->prepare("SELECT id FROM categories WHERE name = ?");
+    $stmt->bind_param("s", $name);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        return false; // Category exists
     }
+
+    // Insert new category
+    $stmt = $this->conn->prepare("INSERT INTO categories (name) VALUES (?)");
+    $stmt->bind_param("s", $name);
+    return $stmt->execute();
+}
+
 
     public function delete($id) {
         $stmt = $this->conn->prepare("DELETE FROM categories WHERE id = ?");
