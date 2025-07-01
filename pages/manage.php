@@ -3,6 +3,7 @@ require_once('../classes/DB.php');
 require_once('../classes/Category.php');
 require_once('../classes/Brand.php');
 require_once('../classes/Supplier.php');
+require_once('../classes/Purchase.php');
 
 $db = new DB();
 $conn = $db->connect();
@@ -10,6 +11,7 @@ $conn = $db->connect();
 $category = new Category($conn);
 $brand = new Brand($conn);
 $supplier = new Supplier($conn);
+$purchase = new Purchase($conn);
 
 $message = "";
 
@@ -58,6 +60,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['add_supplier'])) {
     }
 }
 
+// Handle Purchase Add
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_purchase'])) {
+    $supplier_id = $_POST['supplier_id'];
+    $quantity = $_POST['quantity'];
+    $price_per_unit = $_POST['price_per_unit'];
+    $detail = !empty($_POST['detail_description']) ? $_POST['detail_description'] : null;
+
+    // Insert into `purchases` table
+    $stmt = $conn->prepare("INSERT INTO purchases (supplier_id, quantity, price_per_unit) VALUES (?, ?, ?)");
+    $stmt->bind_param("iid", $supplier_id, $quantity, $price_per_unit);
+    $stmt->execute();
+
+    $purchase_id = $conn->insert_id;
+
+    // Insert into `purchase_details` with description
+    $stmt_detail = $conn->prepare("INSERT INTO purchase_details (purchase_id, detail_description) VALUES (?, ?)");
+    $stmt_detail->bind_param("is", $purchase_id, $detail);
+    $stmt_detail->execute();
+
+    if ($purchase_id && $stmt_detail->affected_rows > 0) {
+        echo "<p style='color:green;'>✅ Purchase added successfully.</p>";
+    } else {
+        echo "<p style='color:red;'>❌ Failed to add purchase.</p>";
+    }
+}
+
+
+
+
+
 
 // Handle Deletes
 if (isset($_GET['delete_category'])) {
@@ -75,6 +107,12 @@ if (isset($_GET['delete_supplier'])) {
     header("Location: manage.php");
     exit();
 }
+if (isset($_GET['delete_purchase'])) {
+    $purchase->delete($_GET['delete_purchase']);
+    header("Location: manage.php");
+    exit();
+}
+
 
 ?>
 <!DOCTYPE html>
@@ -200,6 +238,80 @@ if (isset($_GET['delete_supplier'])) {
     }
     ?>
 </table>
+<br>
+
+<!-- ✅ Purchase Add Form -->
+<form method="post" style="margin-bottom: 20px;">
+    <label for="supplier_id">Supplier:</label>
+    <select name="supplier_id" required>
+        <option value="">Select Supplier</option>
+        <?php
+        $suppliers = $conn->query("SELECT id, name FROM suppliers");
+        while ($row = $suppliers->fetch_assoc()) {
+            echo "<option value='{$row['id']}'>{$row['name']}</option>";
+        }
+        ?>
+    </select>
+
+    <br><br>
+
+    <label for="quantity">Quantity:</label>
+    <input type="number" name="quantity" required min="1" placeholder="Enter Quantity">
+
+    <label for="price_per_unit">Price per Unit:</label>
+    <input type="number" name="price_per_unit" required step="0.01" min="0" placeholder="Enter Price">
+     <br><br>
+    <label for="detail_description">Detail Description:</label>
+    <input type="text" name="detail_description" placeholder="Optional notes like 'July stock + unit of measure'" style="width: 50%;">
+
+    <br><br>
+
+    <button type="submit" name="add_purchase">➕ Add Purchase</button>
+</form>
+
+<!-- Purchases Table -->
+<h3>📋 All Purchases</h3>
+<table border="1" cellpadding="8" cellspacing="0">
+    <thead style="background-color: #17a2b8; color: white;">
+        <tr>
+            <th>ID</th>
+            <th>Supplier</th>
+            <th>Quantity</th>
+            <th>Price per Unit</th>
+            <th>Total Cost</th>
+            <th>Date</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+        $result = $conn->query("
+            SELECT p.id, s.name AS supplier_name, p.quantity, p.price_per_unit, p.purchase_date
+            FROM purchases p
+            JOIN suppliers s ON p.supplier_id = s.id
+            ORDER BY p.purchase_date DESC
+        ");
+
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $total_cost = $row['quantity'] * $row['price_per_unit'];
+                echo "<tr>
+                    <td>{$row['id']}</td>
+                    <td>{$row['supplier_name']}</td>
+                    <td>{$row['quantity']}</td>
+                    <td>Rs. " . number_format($row['price_per_unit'], 2) . "</td>
+                    <td>Rs. " . number_format($total_cost, 2) . "</td>
+                    <td>{$row['purchase_date']}</td>
+                    <td><a href='manage.php?delete_purchase={$row['id']}' onclick=\"return confirm('Are you sure?')\">🗑 Delete</a></td>
+                </tr>";
+            }
+        } else {
+            echo "<tr><td colspan='7'>No purchases found.</td></tr>";
+        }
+        ?>
+    </tbody>
+</table>
+
 <br>
 <!-- Back to Dashboard Button -->
 <a href="dashboard.php" style="display:inline-block; margin-bottom:20px; padding:10px 20px; background-color:#007bff; color:white; text-decoration:none; border-radius:5px;">

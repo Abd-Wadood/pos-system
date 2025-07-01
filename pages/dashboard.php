@@ -21,6 +21,17 @@ if (!isset($_SESSION['username'])) {
 <a href="menu.php" style="display:inline-block; margin:10px; padding:12px 20px; background-color:#28a745; color:white; text-decoration:none; border-radius:5px;">
     🍴 Manage Menu
 </a>
+<div style="margin-top: 20px; clear: both;">
+    <a href="customer_details.php" style="display:inline-block; margin:10px; padding:12px 20px; background-color:#17a2b8; color:white; text-decoration:none; border-radius:5px;">
+        👤 Customer Details
+    </a>
+</div>
+<a href="payment_details.php" style="display:inline-block; margin:10px; padding:12px 20px; background-color:#ffc107; color:white; text-decoration:none; border-radius:5px;">
+    💳 Payment Details
+</a>
+<a href="purchase_details.php" style="display:inline-block; margin:10px; padding:12px 20px; background-color:#28a745; color:white; text-decoration:none; border-radius:5px;">
+    📋 View Purchase Details
+</a>
 
 
 

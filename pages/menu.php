@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once('../classes/DB.php');
 require_once('../classes/Brand.php');
 
@@ -12,11 +13,23 @@ $totalBill = 0;
 // Handle Order
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['items'])) {
     $items = $_POST['items'];
+    $customer_name = $_POST['customer_name'];
+    $customer_phone = $_POST['customer_phone'];
+    $customer_address = $_POST['customer_address'];
+    $payment_type = $_POST['payment_type'];
+
+    // Insert customer
+    $stmt = $conn->prepare("INSERT INTO customers (name, phone, address) VALUES (?, ?, ?)");
+    $stmt->bind_param("sss", $customer_name, $customer_phone, $customer_address);
+    $stmt->execute();
+    $customer_id = $conn->insert_id;
+
+    
 
     foreach ($items as $id => $qty) {
         $qty = (int)$qty;
         if ($qty > 0) {
-            $stmt = $conn->prepare("SELECT price, quantity FROM brands WHERE id = ?");
+            $stmt = $conn->prepare("SELECT price, quantity, name FROM brands WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
             $result = $stmt->get_result()->fetch_assoc();
@@ -25,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['items'])) {
                 $subtotal = $result['price'] * $qty;
                 $totalBill += $subtotal;
 
-                // Update quantity
+                // Update quantity in stock
                 $update = $conn->prepare("UPDATE brands SET quantity = quantity - ? WHERE id = ?");
                 $update->bind_param("ii", $qty, $id);
                 $update->execute();
@@ -33,15 +46,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['items'])) {
         }
     }
 
-    // Save total bill
+    // Insert into bills
     $stmt = $conn->prepare("INSERT INTO bills (total_amount) VALUES (?)");
     $stmt->bind_param("d", $totalBill);
     $stmt->execute();
+    $bill_id = $conn->insert_id;
+
+    // Insert into customer_details (1 row per customer + bill)
+    $stmt = $conn->prepare("INSERT INTO customer_details (customer_id, bill_id, brand_name) VALUES (?, ?, 'Multiple')");
+    $stmt->bind_param("ii", $customer_id, $bill_id);
+    $stmt->execute();
+
+    // Insert into payment_methods
+    $stmt = $conn->prepare("INSERT INTO payment_methods (payment_type) VALUES (?)");
+    $stmt->bind_param("s", $payment_type);
+    $stmt->execute();
+    $payment_id = $conn->insert_id;
+
+    // Insert into payment_details
+    $stmt = $conn->prepare("INSERT INTO payment_details (payment_id, customer_id, bill_id) VALUES (?, ?, ?)");
+    $stmt->bind_param("iii", $payment_id, $customer_id, $bill_id);
+    $stmt->execute();
+
+
+    // Track session sale
+    if (!isset($_SESSION['session_id'])) {
+        die("Session not started properly. Please log in.");
+    }
+    $_SESSION['total_sale'] = ($_SESSION['total_sale'] ?? 0) + $totalBill;
 
     $message = "✅ Order placed! Total: Rs " . $totalBill;
 }
 
-// Get updated stock
 $items = $brand->getAll();
 ?>
 
@@ -51,67 +87,40 @@ $items = $brand->getAll();
     <title>POS Menu</title>
     <link rel="stylesheet" href="../assets/style.css">
     <style>
-        .menu-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
+        .menu-container { display: flex; flex-wrap: wrap; gap: 20px; }
         .menu-item {
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            padding: 15px;
-            width: 200px;
-            text-align: center;
+            border: 2px solid #ccc; border-radius: 10px;
+            padding: 15px; width: 200px; text-align: center;
             cursor: pointer;
         }
         .menu-item.selected {
-            border-color: green;
-            background-color: #eaffea;
+            border-color: green; background-color: #eaffea;
         }
-        .menu-item h3 { margin-bottom: 5px; }
-        .qty-display {
-            font-weight: bold;
-            margin-top: 5px;
-        }
-        .summary-box {
-            margin-top: 30px;
-        }
+        .summary-box, .form-group { margin-top: 30px; }
         .order-btn, .refresh-btn {
-            margin-top: 15px;
-            margin-right: 10px;
-            padding: 10px 20px;
-            border-radius: 5px;
-            border: none;
-            color: white;
-            cursor: pointer;
+            margin-top: 15px; margin-right: 10px;
+            padding: 10px 20px; border-radius: 5px;
+            border: none; color: white; cursor: pointer;
         }
         .order-btn { background-color: green; }
         .refresh-btn { background-color: #555; }
         .dashboard-btn {
-            background-color: #007bff;
-            text-decoration: none;
-            padding: 10px 20px;
-            color: white;
-            border-radius: 5px;
-            display: inline-block;
-            margin-top: 40px;
-            float: right;
-        }
-        .selected-items-list {
-            border: 1px solid #ccc;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 10px;
-            background-color: #f9f9f9;
+            background-color: #007bff; text-decoration: none;
+            padding: 10px 20px; color: white; border-radius: 5px;
+            float: right; margin-top: 40px;
         }
         .message {
-            background: #e7ffe7;
-            color: green;
-            padding: 10px 15px;
-            border-left: 5px solid green;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            font-weight: bold;
+            background: #e7ffe7; color: green;
+            padding: 10px 15px; border-left: 5px solid green;
+            border-radius: 5px; margin-bottom: 20px; font-weight: bold;
+        }
+        .selected-items-list {
+            border: 1px solid #ccc; padding: 15px;
+            border-radius: 10px; background-color: #f9f9f9;
+        }
+        input, select {
+            padding: 8px; margin: 5px 0;
+            width: 100%; max-width: 300px;
         }
     </style>
 </head>
@@ -124,6 +133,20 @@ $items = $brand->getAll();
 <?php endif; ?>
 
 <form method="post" id="orderForm">
+    <div class="form-group">
+        <h3>Customer Info:</h3>
+        <input type="text" name="customer_name" placeholder="Customer Name" required>
+        <input type="text" name="customer_phone" placeholder="Phone Number" required>
+        <input type="text" name="customer_address" placeholder="Address" required>
+
+        <select name="payment_type" required>
+            <option value="">-- Select Payment Method --</option>
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+        </select>
+    </div>
+
     <div class="menu-container">
         <?php while ($row = $items->fetch_assoc()): ?>
             <?php if ($row['quantity'] > 0): ?>
@@ -186,9 +209,7 @@ function updateTotalAndList() {
 }
 
 function clearMessageAndReload() {
-    const msg = document.getElementById('orderMessage');
-    if (msg) msg.remove();
-    // Reset quantities
+    document.getElementById('orderMessage')?.remove();
     document.querySelectorAll('.qty-display span').forEach(el => el.textContent = '0');
     document.querySelectorAll('.menu-item input').forEach(el => el.value = '0');
     document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('selected'));
