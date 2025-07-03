@@ -128,7 +128,7 @@ if (!isset($_SESSION['username'])) {
             View Purchase Details
         </a>
 
-         <!-- 🔥 New Sales Card -->
+
         <a href="sales.php" class="card purple">
             <span class="icon">🛒</span>
             Sales Overview
